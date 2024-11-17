@@ -7,12 +7,19 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.dicoding.picodiploma.loginwithanimation.data.Result
 import com.dicoding.picodiploma.loginwithanimation.databinding.ActivitySignupBinding
+import com.dicoding.picodiploma.loginwithanimation.view.ViewModelFactory
 
 class SignupActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySignupBinding
+    private val viewModel by viewModels<SignupViewModel> {
+        ViewModelFactory.getInstance(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,16 +80,29 @@ class SignupActivity : AppCompatActivity() {
 
     private fun setupAction() {
         binding.signupButton.setOnClickListener {
-            val email = binding.emailEditText.text.toString()
+            val name = binding.edRegisterName.text.toString()
+            val email = binding.edRegisterEmail.text.toString()
+            val password = binding.edRegisterPassword.text.toString()
 
-            AlertDialog.Builder(this).apply {
-                setTitle("Yeah!")
-                setMessage("Akun dengan $email sudah jadi nih. Yuk, login dan belajar coding.")
-                setPositiveButton("Lanjut") { _, _ ->
-                    finish()
+            viewModel.signup(name, email, password).observe(this) { result ->
+                when (result) {
+                    is Result.Error -> {
+                        binding.linearProgressBar.visibility = View.GONE
+                        Toast.makeText(this, result.error, Toast.LENGTH_SHORT).show()
+                    }
+                    is Result.Loading -> {
+                        binding.linearProgressBar.visibility = View.VISIBLE
+                    }
+                    is Result.Success -> {
+                        binding.linearProgressBar.visibility = View.GONE
+                        if (result.data.error == true) {
+                            Toast.makeText(this, result.data.message, Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this, result.data.message, Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                    }
                 }
-                create()
-                show()
             }
         }
     }

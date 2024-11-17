@@ -5,13 +5,21 @@ import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.dicoding.picodiploma.loginwithanimation.R
+import com.dicoding.picodiploma.loginwithanimation.data.Result
 import com.dicoding.picodiploma.loginwithanimation.databinding.ActivityMainBinding
+import com.dicoding.picodiploma.loginwithanimation.view.StoriesAdapter
 import com.dicoding.picodiploma.loginwithanimation.view.ViewModelFactory
+import com.dicoding.picodiploma.loginwithanimation.view.detail.AddStoryActivity
 import com.dicoding.picodiploma.loginwithanimation.view.welcome.WelcomeActivity
 
 class MainActivity : AppCompatActivity() {
@@ -19,11 +27,15 @@ class MainActivity : AppCompatActivity() {
         ViewModelFactory.getInstance(this)
     }
     private lateinit var binding: ActivityMainBinding
+    private val storiesAdapter = StoriesAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+
+        supportActionBar?.show()
 
         viewModel.getSession().observe(this) { user ->
             if (!user.isLogin) {
@@ -34,50 +46,63 @@ class MainActivity : AppCompatActivity() {
 
         setupView()
         setupAction()
-        playAnimation()
     }
 
-    private fun playAnimation() {
-        ObjectAnimator.ofFloat(binding.imageView, View.TRANSLATION_X, -30f, 30f).apply {
-            duration = 6000
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.REVERSE
-        }.start()
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
 
-        val name = ObjectAnimator.ofFloat(binding.nameTextView, View.ALPHA, 1f).setDuration(100)
-        val message = ObjectAnimator.ofFloat(binding.messageTextView, View.ALPHA, 1f).setDuration(100)
-        val logout = ObjectAnimator.ofFloat(binding.logoutButton, View.ALPHA, 1f).setDuration(100)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_logout -> {
+                viewModel.logout()
+                true
+            }
 
-        val together = AnimatorSet().apply {
-            playTogether(name)
-        }
-
-        AnimatorSet().apply {
-            playSequentially(name,
-                message,
-                logout,
-                together
-            )
-            start()
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun setupView() {
-        @Suppress("DEPRECATION")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.hide(WindowInsets.Type.statusBars())
-        } else {
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-            )
+        binding.rvStory.apply {
+            adapter = storiesAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
         }
-        supportActionBar?.hide()
+
+        viewModel.getSession().observe(this) { user ->
+            if (!user.isLogin) {
+                startActivity(Intent(this, WelcomeActivity::class.java))
+                finish()
+            }
+        }
+
+        viewModel.getAllStories().observe(this) { result ->
+            when (result) {
+                is Result.Error -> {
+                    binding.linearProgressBar.visibility = View.GONE
+                    Toast.makeText(this, result.error, Toast.LENGTH_SHORT).show()
+                }
+
+                is Result.Loading -> {
+                    binding.linearProgressBar.visibility = View.VISIBLE
+                }
+
+                is Result.Success -> {
+                    binding.linearProgressBar.visibility = View.GONE
+                    if (result.data.error == true) {
+                        Toast.makeText(this, result.data.message, Toast.LENGTH_SHORT).show()
+                    } else {
+                        storiesAdapter.submitList(result.data.listStory)
+                    }
+                }
+            }
+        }
     }
 
     private fun setupAction() {
-        binding.logoutButton.setOnClickListener {
-            viewModel.logout()
+        binding.btnAdd.setOnClickListener {
+            startActivity(Intent(this, AddStoryActivity::class.java))
         }
     }
 
