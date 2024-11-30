@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
 import com.dicoding.picodiploma.loginwithanimation.data.StoriesRepository
 import com.dicoding.picodiploma.loginwithanimation.data.UserRepository
 import com.dicoding.picodiploma.loginwithanimation.data.pref.UserModel
@@ -23,8 +24,9 @@ class MainViewModel(
         return repository.getSession().asLiveData()
     }
 
-    fun getAllStories() = storiesRepository.getAllStories()
+    //fun getAllStories() = storiesRepository.getAllStories()
 
+    fun getPagedStories() = storiesRepository.getPagedStories().cachedIn(viewModelScope)
 
     fun logout() {
         viewModelScope.launch {

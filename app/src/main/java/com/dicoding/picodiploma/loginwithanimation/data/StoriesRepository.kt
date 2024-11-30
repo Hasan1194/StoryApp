@@ -3,6 +3,11 @@ package com.dicoding.picodiploma.loginwithanimation.data
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.liveData
+import com.dicoding.picodiploma.loginwithanimation.data.remote.pref.ErrorResponse
 import com.dicoding.picodiploma.loginwithanimation.data.remote.pref.ListStoryItem
 import com.dicoding.picodiploma.loginwithanimation.data.remote.pref.StoriesResponse
 import com.dicoding.picodiploma.loginwithanimation.data.remote.pref.StoryUploadResponse
@@ -45,6 +50,17 @@ class StoriesRepository private constructor(
         return apiService.getAllStories().listStory
     }
 
+    fun getPagedStories(): LiveData<PagingData<ListStoryItem>>{
+        return Pager(
+            config = PagingConfig(
+                pageSize = 5
+            ),
+            pagingSourceFactory = {
+                StoriesPagingSource(apiService)
+            }
+        ).liveData
+    }
+
     fun uploadStory(
         imageFile: File,
         description: String
@@ -77,6 +93,19 @@ class StoriesRepository private constructor(
         }
     }
 
+    fun getStoriesWithLocation() = liveData {
+        emit(Result.Loading)
+        try {
+            val response = apiService.getStoriesWithLocation()
+            emit(Result.Success(response))
+        } catch (e: HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+            emit(Result.Error(errorResponse.message))
+        } catch (e: Exception) {
+            emit(Result.Error(e.message ?: "An unknown error occurred"))
+        }
+    }
 
     companion object {
         @Volatile

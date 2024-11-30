@@ -5,6 +5,7 @@ import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.app.ActivityOptionsCompat
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -15,7 +16,8 @@ import com.dicoding.picodiploma.loginwithanimation.databinding.ItemCardBinding
 import com.dicoding.picodiploma.loginwithanimation.view.detail.DetailActivity
 import com.dicoding.picodiploma.loginwithanimation.view.detail.DetailActivity.Companion.STORY
 
-class StoriesAdapter : ListAdapter<ListStoryItem, StoriesAdapter.MyViewHolder>(DIFF_CALLBACK) {
+class StoriesAdapter :
+    PagingDataAdapter<ListStoryItem, StoriesAdapter.MyViewHolder>(DIFF_CALLBACK) {
 
     class MyViewHolder(private val binding: ItemCardBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(story: ListStoryItem) {
@@ -45,7 +47,7 @@ class StoriesAdapter : ListAdapter<ListStoryItem, StoriesAdapter.MyViewHolder>(D
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         val stories = getItem(position)
-        holder.bind(stories)
+        stories?.let { holder.bind(it) }
     }
 
     companion object {

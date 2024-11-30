@@ -13,10 +13,13 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dicoding.picodiploma.loginwithanimation.R
 import com.dicoding.picodiploma.loginwithanimation.data.Result
 import com.dicoding.picodiploma.loginwithanimation.databinding.ActivityMainBinding
+import com.dicoding.picodiploma.loginwithanimation.view.MapsActivity
 import com.dicoding.picodiploma.loginwithanimation.view.StoriesAdapter
 import com.dicoding.picodiploma.loginwithanimation.view.ViewModelFactory
 import com.dicoding.picodiploma.loginwithanimation.view.detail.AddStoryActivity
@@ -33,7 +36,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
 
         supportActionBar?.show()
 
@@ -59,9 +61,19 @@ class MainActivity : AppCompatActivity() {
                 viewModel.logout()
                 true
             }
+            R.id.map -> {
+                navigateMapsActivity()
+                true
+            }
 
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun navigateMapsActivity() {
+        val intent = Intent(this, MapsActivity::class.java)
+        startActivity(intent)
+
     }
 
     private fun setupView() {
@@ -77,27 +89,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        viewModel.getAllStories().observe(this) { result ->
-            when (result) {
-                is Result.Error -> {
-                    binding.linearProgressBar.visibility = View.GONE
-                    Toast.makeText(this, result.error, Toast.LENGTH_SHORT).show()
-                }
-
-                is Result.Loading -> {
-                    binding.linearProgressBar.visibility = View.VISIBLE
-                }
-
-                is Result.Success -> {
-                    binding.linearProgressBar.visibility = View.GONE
-                    if (result.data.error == true) {
-                        Toast.makeText(this, result.data.message, Toast.LENGTH_SHORT).show()
-                    } else {
-                        storiesAdapter.submitList(result.data.listStory)
-                    }
-                }
+        lifecycleScope.launchWhenCreated {
+            viewModel.getPagedStories().observe(this@MainActivity) { pagingData ->
+                storiesAdapter.submitData(lifecycle, pagingData)
             }
         }
+
+        storiesAdapter.addLoadStateListener { loadState ->
+            binding.linearProgressBar.visibility = if (loadState.source.refresh is LoadState.Loading) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+
+            val errorState = loadState.source.append as? LoadState.Error
+                ?: loadState.source.prepend as? LoadState.Error
+                ?: loadState.refresh as? LoadState.Error
+
+            errorState?.let {
+                Toast.makeText(
+                    this,
+                    "Error: ${it.error.localizedMessage}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
     }
 
     private fun setupAction() {

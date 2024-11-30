@@ -23,5 +23,8 @@
     <string name="upload_story">Upload Story</string>
     <string name="upload_error">Pick the image!</string>
     <string name="login_success">Login Success</string>
+    <string name="map">Map</string>
+    <string name="title_activity_maps">MapsActivity</string>
+    <string name="check_password">Password must be at least 8 characters</string>
 
 </resources>
